@@ -18,6 +18,7 @@ HOST="localhost"                          # Адрес сервера с WildFly
 PORT_CLI="9990"                           # Порт на котором работает CLI WildFly
 PORT_APP="8080"                           # Порт на котором есть доступ по сети до самого приложения
 URL="https://10.7.39.16:8080/ssrv-war/"   # URL адрес приложения
+APP_NAME=$(ls -l "$WILDFLY_HOME"/standalone/deployments | grep ssrv-rshb-war | awk '{print $9}' | sort | head -n 1 ) # Получаем название задеплоинного приложения
 
 # Создание временных файлов
 TEMP_FILE_CM5=$(mktemp)
@@ -121,7 +122,7 @@ fi
 # === Данные WIldFly ===
 
 # Получение данных о количестве активных сессий WildFly
-"$WILDFLY_HOME/bin/jboss-cli.sh" --connect --controller="$HOST:$PORT_CLI" --commands="/deployment=ssrv-rshb-war-7.0.3.226.war/subsystem=undertow/:read-attribute(name=active-sessions)" > "$TEMP_FILE_WF_CLI"
+"$WILDFLY_HOME/bin/jboss-cli.sh" --connect --controller="$HOST:$PORT_CLI" --commands="/deployment=$APP_NAME/subsystem=undertow/:read-attribute(name=active-sessions)" > "$TEMP_FILE_WF_CLI"
 
 # Извлечение количества активных сессий к WildFly
 ACTIVE_CONNECTION_WF=$(cat "$TEMP_FILE_WF_CLI" | grep result | awk '{print $3}')
@@ -157,22 +158,22 @@ if [ -s "$TEMP_FILE_PZDC" ]; then
     echo -e "${COLOR_2}[$(date +"%Y-%m-%d %H:%M:%S")]${RESET} Количество серверных процессов БД" >> "$HOME_LOG"/"$LOG_FILE"
     echo -e "${COLOR_2}[$(date +"%Y-%m-%d %H:%M:%S")]${RESET} В $DB_CM5: ${COLOR_1}$(cat "$TEMP_FILE_PZDC" | grep cm5_17_new | wc -l)${RESET} активных серверных процессов" >> "$HOME_LOG"/"$LOG_FILE"
     echo -e "${COLOR_2}[$(date +"%Y-%m-%d %H:%M:%S")]${RESET} В $DB_CMJ: ${COLOR_1}$(cat "$TEMP_FILE_PZDC" | grep cmj_17_new | wc -l)${RESET} активных серверных процессов" >> "$HOME_LOG"/"$LOG_FILE"
-    if [[ $(cat "$TEMP_FILE_PZDC" | grep cmj_17_new | grep active | wc -l) != '0' ]]; then
+    if [[ $(cat "$TEMP_FILE_PZDC" | grep "$DB_CMJ" | grep active | wc -l) != '0' ]]; then
         echo -e "${COLOR_2}[$(date +"%Y-%m-%d %H:%M:%S")]${RESET} Количество серверных процессов с активными запросами в $DB_CMJ: ${COLOR_1} $(cat "$TEMP_FILE_PZDC" | \
-            grep cmj_17_new| grep active | wc -l)${RESET}" >> "$HOME_LOG"/"$LOG_FILE"
+            grep "$DB_CMJ" | grep active | wc -l)${RESET}" >> "$HOME_LOG"/"$LOG_FILE"
     else
         echo -e "${COLOR_2}[$(date +"%Y-%m-%d %H:%M:%S")]${RESET} Активных запросов в $DB_CMJ нет" >> "$HOME_LOG"/"$LOG_FILE"
     fi
-    if [[ $(cat "$TEMP_FILE_PZDC" | grep cm5_17_new | grep active | wc -l) != '0' ]]; then
-        echo -e "${COLOR_2}[$(date +"%Y-%m-%d %H:%M:%S")]${RESET} Количество серверных процессов с активными запросами в $DB_CM5: ${COLOR_1}$(cat "$TEMP_FILE_PZDC" | grep cm5_17_new \
+    if [[ $(cat "$TEMP_FILE_PZDC" | grep "$DB_CM5" | grep active | wc -l) != '0' ]]; then
+        echo -e "${COLOR_2}[$(date +"%Y-%m-%d %H:%M:%S")]${RESET} Количество серверных процессов с активными запросами в $DB_CM5: ${COLOR_1}$(cat "$TEMP_FILE_PZDC" | grep ""$DB_CM5 \
             | grep active | wc -l)${RESET}" >> "$HOME_LOG"/"$LOG_FILE"
     else
         echo -e "${COLOR_2}[$(date +"%Y-%m-%d %H:%M:%S")]${RESET} Активных запросов в $DB_CM5 нет" >> "$HOME_LOG"/"$LOG_FILE"
     fi
     echo -e "${COLOR_2}[$(date +"%Y-%m-%d %H:%M:%S")]${RESET} Длительность выполнения последних запросов в CM5" >> "$HOME_LOG"/"$LOG_FILE"
-    echo -e "$( cat "$TEMP_FILE_PZDC" | grep cm5_17_new | awk -F '|' '{print $1}' | sort -r )" >> "$HOME_LOG"/"$LOG_FILE"
+    echo -e "$( cat "$TEMP_FILE_PZDC" | grep "$DB_CM5" | awk -F '|' '{print $1}' | sort -r )" >> "$HOME_LOG"/"$LOG_FILE"
     echo -e "${COLOR_2}[$(date +"%Y-%m-%d %H:%M:%S")]${RESET} Длительность выполенния последних запросов в CMJ" >> "$HOME_LOG"/"$LOG_FILE"
-    echo -e "$( cat "$TEMP_FILE_PZDC" | grep cmj_17_new | awk -F '|' '{print $1}' | sort -r )"  >> "$HOME_LOG"/"$LOG_FILE"
+    echo -e "$( cat "$TEMP_FILE_PZDC" | grep "$DB_CMJ" | awk -F '|' '{print $1}' | sort -r )"  >> "$HOME_LOG"/"$LOG_FILE"
 else
     echo -e "${COLOR_2}[$(date +"%Y-%m-%d %H:%M:%S")]${RESET} Данные по базам данных не получены. Error 4" >> "$HOME_LOG"/"$LOG_FILE"
     exit 4
