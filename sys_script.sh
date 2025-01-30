@@ -80,6 +80,7 @@ echo -e "${COLOR_2}[$(date +"%Y-%m-%d %H:%M:%S")]${RESET} Нагрузка на 
 echo -e "${COLOR_2}[$(date +"%Y-%m-%d %H:%M:%S")]${RESET} Средняя нагрузка на систему за 1 минуту, 5 минут, 15 минут: ${COLOR_1}$(uptime | awk '{print $10}') $(uptime | awk '{print $11}') \
 $( uptime | awk '{print $12}')${RESET}" >> "$HOME_LOG"/"$LOG_FILE"
 
+
 # === Данные PostgreSQL ===
 
 # Получение данных о количестве подключений к БД CM5
