@@ -25,6 +25,7 @@ TEMP_FILE_CM5=$(mktemp)
 TEMP_FILE_CMJ=$(mktemp)
 TEMP_FILE_WF_CLI=$(mktemp)
 TEMP_FILE_PZDC=$(mktemp)
+TEMP_FILE_CONNECT=$(mktemp)
 
 # Переменные для подключения к удаленной БД PostgreSQL
 DB_CM5="cm5_17_new"    # Полное название базы данных CM5
@@ -157,16 +158,16 @@ ORDER BY time_in_progress DESC;" > "$TEMP_FILE_PZDC"
 # Определение статистики базы данных по активным запросам и последним выполенным запросам
 if [ -s "$TEMP_FILE_PZDC" ]; then
     echo -e "${COLOR_2}[$(date +"%Y-%m-%d %H:%M:%S")]${RESET} Количество серверных процессов БД" >> "$HOME_LOG"/"$LOG_FILE"
-    echo -e "${COLOR_2}[$(date +"%Y-%m-%d %H:%M:%S")]${RESET} В $DB_CM5: ${COLOR_1}$(cat "$TEMP_FILE_PZDC" | grep cm5_17_new | wc -l)${RESET} активных серверных процессов" >> "$HOME_LOG"/"$LOG_FILE"
-    echo -e "${COLOR_2}[$(date +"%Y-%m-%d %H:%M:%S")]${RESET} В $DB_CMJ: ${COLOR_1}$(cat "$TEMP_FILE_PZDC" | grep cmj_17_new | wc -l)${RESET} активных серверных процессов" >> "$HOME_LOG"/"$LOG_FILE"
-    if [[ $(cat "$TEMP_FILE_PZDC" | grep "$DB_CMJ" | grep active | wc -l) != '0' ]]; then
+    echo -e "${COLOR_2}[$(date +"%Y-%m-%d %H:%M:%S")]${RESET} В $DB_CM5: ${COLOR_1}$(cat "$TEMP_FILE_PZDC" | grep "$DB_CM5" | wc -l)${RESET} активных серверных процессов" >> "$HOME_LOG"/"$LOG_FILE"
+    echo -e "${COLOR_2}[$(date +"%Y-%m-%d %H:%M:%S")]${RESET} В $DB_CMJ: ${COLOR_1}$(cat "$TEMP_FILE_PZDC" | grep "$DB_CMJ" | wc -l)${RESET} активных серверных процессов" >> "$HOME_LOG"/"$LOG_FILE"
+    if [[ $(cat "$TEMP_FILE_PZDC" | grep "$DB_CM5" | grep active | wc -l) != '0' ]]; then
         echo -e "${COLOR_2}[$(date +"%Y-%m-%d %H:%M:%S")]${RESET} Количество серверных процессов с активными запросами в $DB_CMJ: ${COLOR_1} $(cat "$TEMP_FILE_PZDC" | \
-            grep "$DB_CMJ" | grep active | wc -l)${RESET}" >> "$HOME_LOG"/"$LOG_FILE"
+            grep cmj_17_new| grep active | wc -l)${RESET}" >> "$HOME_LOG"/"$LOG_FILE"
     else
         echo -e "${COLOR_2}[$(date +"%Y-%m-%d %H:%M:%S")]${RESET} Активных запросов в $DB_CMJ нет" >> "$HOME_LOG"/"$LOG_FILE"
     fi
-    if [[ $(cat "$TEMP_FILE_PZDC" | grep "$DB_CM5" | grep active | wc -l) != '0' ]]; then
-        echo -e "${COLOR_2}[$(date +"%Y-%m-%d %H:%M:%S")]${RESET} Количество серверных процессов с активными запросами в $DB_CM5: ${COLOR_1}$(cat "$TEMP_FILE_PZDC" | grep ""$DB_CM5 \
+    if [[ $(cat "$TEMP_FILE_PZDC" | grep "$DB_CMJ" | grep active | wc -l) != '0' ]]; then
+        echo -e "${COLOR_2}[$(date +"%Y-%m-%d %H:%M:%S")]${RESET} Количество серверных процессов с активными запросами в $DB_CM5: ${COLOR_1}$(cat "$TEMP_FILE_PZDC" | grep cm5_17_new \
             | grep active | wc -l)${RESET}" >> "$HOME_LOG"/"$LOG_FILE"
     else
         echo -e "${COLOR_2}[$(date +"%Y-%m-%d %H:%M:%S")]${RESET} Активных запросов в $DB_CM5 нет" >> "$HOME_LOG"/"$LOG_FILE"
@@ -174,14 +175,11 @@ if [ -s "$TEMP_FILE_PZDC" ]; then
     echo -e "${COLOR_2}[$(date +"%Y-%m-%d %H:%M:%S")]${RESET} Длительность выполнения последних запросов в CM5" >> "$HOME_LOG"/"$LOG_FILE"
     echo -e "$( cat "$TEMP_FILE_PZDC" | grep "$DB_CM5" | awk -F '|' '{print $1}' | sort -r )" >> "$HOME_LOG"/"$LOG_FILE"
     echo -e "${COLOR_2}[$(date +"%Y-%m-%d %H:%M:%S")]${RESET} Длительность выполенния последних запросов в CMJ" >> "$HOME_LOG"/"$LOG_FILE"
-    echo -e "$( cat "$TEMP_FILE_PZDC" | grep "$DB_CMJ" | awk -F '|' '{print $1}' | sort -r )"  >> "$HOME_LOG"/"$LOG_FILE"
+    echo -e "$( cat "$TEMP_FILE_PZDC" | grep "$DB_CMJ" | awk -F '|' '{print $1}' | sort -r )" >> "$HOME_LOG"/"$LOG_FILE"
 else
     echo -e "${COLOR_2}[$(date +"%Y-%m-%d %H:%M:%S")]${RESET} Данные по базам данных не получены. Error 4" >> "$HOME_LOG"/"$LOG_FILE"
     exit 4
 fi
-
-# Удаление временных файлов
-rm "$TEMP_FILE_PZDC" "$TEMP_FILE_CM5" "$TEMP_FILE_CMJ" "$TEMP_FILE_WF_CLI"
 
 
 # ===Создание Thread Dump===
@@ -192,7 +190,7 @@ if [[ $(awk -v ozu_1=$OZU_LOAD -v ozu_2=$CONDITIONS_OZU 'BEGIN {if (ozu_1 >= ozu
     if [[ -n $USER_WF && -n $PID_WF ]]; then
         if [ ! -d "$DUMP_DIR" ]; then
             mkdir "$DUMP_DIR"
-            echo -e "${COLOR_2}[$(date +"%Y-%m-%d %H:%M:%S")]${RESET} Директория для Thread Dump создана" >> "$HOME_LOG"/"$LOG_FILE"
+            echo -e "${COLOR_2}[$(date +"%Y-%m-%d %H:%M:%S")]${RESET} Директория для Thread Dump успешно создана" >> "$HOME_LOG"/"$LOG_FILE"
         fi
         touch "$DUMP_DIR/$DUMP_FILE"
         sudo -u "$USER_WF" "$JAVA_HOME/bin/jcmd" "$PID_WF" Thread.print > "$DUMP_DIR/$DUMP_FILE"
@@ -204,3 +202,31 @@ if [[ $(awk -v ozu_1=$OZU_LOAD -v ozu_2=$CONDITIONS_OZU 'BEGIN {if (ozu_1 >= ozu
 else
     echo -e "${COLOR_2}[$(date +"%Y-%m-%d %H:%M:%S")]${RESET} Показатели состояния сервера не превышают пороговых значений. Показаний для сбора Thread dump нет." >> "$HOME_LOG"/"$LOG_FILE"
 fi
+
+
+# ===Получение количества подключений WildFly к базам данных PostgreSQL===
+
+# Получение данных о количестве активных подключений WildFly к базам данных
+"$WILDFLY_HOME/bin/jboss-cli.sh" --connect --controller="$HOST:$PORT_CLI" --commands="/subsystem=datasources/xa-data-source=CM5/statistics=pool:read-attribute(name=ActiveCount)" > "$TEMP_FILE_CONNECT"
+"$WILDFLY_HOME/bin/jboss-cli.sh" --connect --controller="$HOST:$PORT_CLI" --commands="/subsystem=datasources/xa-data-source=CMJ/statistics=pool:read-attribute(name=ActiveCount)" >> "$TEMP_FILE_CONNECT"
+
+# Извлечение количества активных сессий WildFly к базам данных
+ACTIVE_CONNECTION_PG_CM5=$(cat "$TEMP_FILE_CONNECT" | head -n 4 | grep result | awk '{print $3}')
+ACTIVE_CONNECTION_PG_CMJ=$(cat "$TEMP_FILE_CONNECT" | tail -n 4 | grep result | awk '{print $3}')
+
+# Вывод даннх о активных подключениях к базе даннх
+if [ -n "$ACTIVE_CONNECTION_PG_CM5" ]; then
+    echo -e "${COLOR_2}[$(date +"%Y-%m-%d %H:%M:%S")]${RESET} Количество активных подключений сервера WildFly к $DB_CM5: ${COLOR_1}$ACTIVE_CONNECTION_PG_CM5${RESET}" >> "$HOME_LOG"/"$LOG_FILE"
+else
+    echo -e "${COLOR_2}[$(date +"%Y-%m-%d %H:%M:%S")]${RESET} Не удалось получить данные о количетсве активных подключений WildFly к $DB_CM5. Error 6" >> "$HOME_LOG"/"$LOG_FILE"
+    exit 6
+fi
+if [ -n "$ACTIVE_CONNECTION_PG_CMJ" ]; then
+    echo -e "${COLOR_2}[$(date +"%Y-%m-%d %H:%M:%S")]${RESET} Количество активных подключений сервера WildFly к $DB_CM5: ${COLOR_1}$ACTIVE_CONNECTION_PG_CMJ${RESET}" >> "$HOME_LOG"/"$LOG_FILE"
+else
+    echo -e "${COLOR_2}[$(date +"%Y-%m-%d %H:%M:%S")]${RESET} Не удалось получить данные о количетсве активных подключений WildFly к $DB_CMJ. Error 6" >> "$HOME_LOG"/"$LOG_FILE"
+    exit 6
+fi
+
+# Удаление временных файлов
+rm "$TEMP_FILE_PZDC" "$TEMP_FILE_CM5" "$TEMP_FILE_CMJ" "$TEMP_FILE_WF_CLI" "$TEMP_FILE_CONNECT"
